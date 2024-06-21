@@ -1,6 +1,6 @@
-package main
+package database
 
-type employee struct {
+type Employee struct {
 	EmployeeID string `json:"employeeId"`
 	Name       string `json:"name"`
 	City       string `json:"city"`
