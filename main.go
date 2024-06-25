@@ -101,6 +101,12 @@ func (a api) handlerGreeting(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a api) handlerGetEmployee(w http.ResponseWriter, r *http.Request) {
+	employeeId := chi.URLParamFromCtx(r.Context(), "id")
+	employee, err := a.db.GetEmployee(employeeId)
+	if err != nil {
+		log.Fatal(err)
+	}
+	respondWithJson(w, 200, employee)
 }
 
 func (a api) handlerCreateEmployee(w http.ResponseWriter, r *http.Request) {

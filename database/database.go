@@ -2,6 +2,7 @@ package database
 
 import (
 	"encoding/json"
+	"errors"
 	"log"
 	"os"
 )
@@ -71,4 +72,25 @@ func (d Database) GetAllEmployee() ([]Employee, error) {
 	}
 
 	return employees, nil
+}
+
+func (d Database) GetEmployee(employeeId string) (*Employee, error) {
+	dat, err := os.ReadFile(d.Conn.Name())
+	if err != nil {
+		return nil, err
+	}
+
+	var employees []Employee
+
+	err = json.Unmarshal(dat, &employees)
+	if err != nil {
+		return nil, err
+	}
+	for _, e := range employees {
+		if e.EmployeeID == employeeId {
+			return &e, nil
+		}
+	}
+
+	return nil, errors.New("data not found ")
 }
