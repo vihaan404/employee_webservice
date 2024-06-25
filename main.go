@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -46,33 +45,50 @@ func main() {
 	}
 }
 
-func createDataBase() {
+func personalTesting() {
 	file, err := os.OpenFile("employee.json", os.O_WRONLY, 0644)
 	if err != nil {
 		log.Println("error opening employee.json")
 	}
 	defer file.Close()
-	dat := database.Employee{
-		EmployeeID: "SomeRandomNumber",
-		Name:       "somename",
-		City:       "somecity",
-	}
-	result, err := json.Marshal(dat)
+	dat, err := os.ReadFile("employee.json")
 	if err != nil {
-		log.Println("error Marshaling the json")
+		log.Fatal("readfile error")
+	}
+	if string(dat) == "" {
+		log.Print("glizzy")
 	}
 
-	writer := bufio.NewWriter(file)
-	numberOfBytes, err := writer.Write(result)
-	if err != nil {
-		log.Println("Could not write in the buffer ")
-	}
-	log.Println(numberOfBytes)
+	log.Print(dat)
+	var employees []database.Employee
 
-	err = writer.Flush()
+	err = json.Unmarshal(dat, &employees)
+	log.Print(employees)
 	if err != nil {
-		log.Println("flush faled")
+		log.Fatal("unmarshal error")
 	}
+
+	// dat := database.Employee{
+	// 	EmployeeID: "SomeRandomNumber",
+	// 	Name:       "somename",
+	// 	City:       "somecity",
+	// }
+	// result, err := json.Marshal(dat)
+	// if err != nil {
+	// 	log.Println("error Marshaling the json")
+	// }
+	//
+	// writer := bufio.NewWriter(file)
+	// numberOfBytes, err := writer.Write(result)
+	// if err != nil {
+	// 	log.Println("Could not write in the buffer ")
+	// }
+	// log.Println(numberOfBytes)
+	//
+	// err = writer.Flush()
+	// if err != nil {
+	// 	log.Println("flush faled")
+	// }
 }
 
 func (a api) handlerGreeting(w http.ResponseWriter, r *http.Request) {
@@ -97,6 +113,7 @@ func (a api) handlerCreateEmployee(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&createEmployeeBody)
 	if err != nil {
 		http.Error(w, "bad request", http.StatusBadRequest)
+		return
 	}
 	params := database.Employee{
 		EmployeeID: uuid.NewString(),

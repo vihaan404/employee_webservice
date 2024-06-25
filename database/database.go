@@ -1,7 +1,6 @@
 package database
 
 import (
-	"bufio"
 	"encoding/json"
 	"log"
 	"os"
@@ -16,6 +15,14 @@ func CreateDatabaseConnection() (*Database, error) {
 	if err != nil {
 		return nil, err
 	}
+	dat, err := os.ReadFile(file.Name())
+	if err != nil {
+		return nil, err
+	}
+	if string(dat) == "" {
+		os.WriteFile(file.Name(), []byte("[]"), 0644)
+	}
+
 	return &Database{
 		file,
 	}, nil
@@ -29,15 +36,39 @@ func (d Database) CloseConnection() {
 }
 
 func (d Database) CreateEmployee(e Employee) (string, error) {
-	writer := bufio.NewWriter(d.Conn)
-	dat, err := json.Marshal(e)
+	dat, err := os.ReadFile(d.Conn.Name())
 	if err != nil {
 		return "", err
 	}
-	_, _ = writer.Write(dat)
-	err = writer.Flush()
+	var employees []Employee
+
+	err = json.Unmarshal(dat, &employees)
 	if err != nil {
 		return "", err
 	}
+
+	employees = append(employees, e)
+	inputDat, err := json.MarshalIndent(employees, "", " ")
+	if err != nil {
+		return "", err
+	}
+	os.WriteFile(d.Conn.Name(), inputDat, 0644)
+
 	return e.EmployeeID, nil
+}
+
+func (d Database) GetAllEmployee() ([]Employee, error) {
+	dat, err := os.ReadFile(d.Conn.Name())
+	if err != nil {
+		return nil, err
+	}
+
+	var employees []Employee
+
+	err = json.Unmarshal(dat, &employees)
+	if err != nil {
+		return nil, err
+	}
+
+	return employees, nil
 }
