@@ -30,7 +30,7 @@ func main() {
 	router.Get("/greeting", api.handlerGreeting)
 	router.Get("/employee/{id}", api.handlerGetEmployee)
 	router.Post("/employee", api.handlerCreateEmployee)
-	router.Get("/employees/all ", handlerGetAllEmployee)
+	router.Get("/employee/all", api.handlerGetAllEmployee)
 	router.Put("/employee/{id}", handlerUpdateEmployee)
 	router.Delete("/employee/{id}", handlerDeleteEmployee)
 	router.Post("/employees/search", handlerEmployeeSearch)
@@ -132,7 +132,12 @@ func (a api) handlerCreateEmployee(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func handlerGetAllEmployee(w http.ResponseWriter, r *http.Request) {
+func (a api) handlerGetAllEmployee(w http.ResponseWriter, r *http.Request) {
+	employees, err := a.db.GetAllEmployee()
+	if err != nil {
+		log.Println("handlerGetALl error")
+	}
+	respondWithJson(w, 200, employees)
 }
 
 func handlerUpdateEmployee(w http.ResponseWriter, r *http.Request) {
