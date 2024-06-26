@@ -34,7 +34,7 @@ func main() {
 	router.Post("/employee", api.handlerCreateEmployee)
 	router.Get("/employee/all", api.handlerGetAllEmployee)
 	router.Put("/employee/{id}", api.handlerUpdateEmployee)
-	router.Delete("/employee/{id}", handlerDeleteEmployee)
+	router.Delete("/employee/{id}", api.handlerDeleteEmployee)
 	router.Post("/employees/search", handlerEmployeeSearch)
 	srv := &http.Server{
 		Addr:    ":" + port,
@@ -182,7 +182,18 @@ func (a api) handlerUpdateEmployee(w http.ResponseWriter, r *http.Request) {
 	respondWithJson(w, 201, employee)
 }
 
-func handlerDeleteEmployee(w http.ResponseWriter, r *http.Request) {
+func (a api) handlerDeleteEmployee(w http.ResponseWriter, r *http.Request) {
+	employeeId := chi.URLParam(r, "id")
+	employee, err := a.db.DeleteEmployee(employeeId)
+	if err != nil {
+
+		if errors.Is(err, database.ErrEmployeeNotFound) {
+			respondWithError(w, http.StatusNotFound, fmt.Sprintf("Employee with %s was not found", employeeId))
+			return
+		}
+		slog.Error("msg", err)
+	}
+	respondWithJson(w, 200, employee)
 }
 
 func handlerEmployeeSearch(w http.ResponseWriter, r *http.Request) {

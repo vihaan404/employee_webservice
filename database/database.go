@@ -122,12 +122,6 @@ func (d Database) UpdateEmployee(e Employee, employeeId string) (*Employee, erro
 		return nil, ErrEmployeeNotFound
 	}
 
-	updatedData, err := json.MarshalIndent(employees, "", " ")
-	if err != nil {
-		return nil, err
-	}
-
-	os.WriteFile(d.Conn.Name(), updatedData, 0644)
 	return &e, nil
 }
 
@@ -143,10 +137,29 @@ func (d Database) DeleteEmployee(employeeId string) (*Employee, error) {
 	if err != nil {
 		return nil, err
 	}
-	for _, e := range employees {
-		if e.EmployeeID == employeeId {
-			return &e, nil
+	found := false
+	index := 0
+
+	e := Employee{}
+	for i := range employees {
+		if employees[i].EmployeeID == employeeId {
+			found = true
+			index = i
+			e = employees[i]
+
 		}
 	}
-	return nil, nil
+	if !found {
+		return nil, ErrEmployeeNotFound
+	}
+
+	employees = append(employees[:index], employees[index+1:]...)
+	updatedData, err := json.MarshalIndent(employees, "", " ")
+	if err != nil {
+		return nil, err
+	}
+
+	os.WriteFile(d.Conn.Name(), updatedData, 0644)
+
+	return &e, nil
 }
