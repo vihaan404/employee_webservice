@@ -2,8 +2,10 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 
@@ -31,7 +33,7 @@ func main() {
 	router.Get("/employee/{id}", api.handlerGetEmployee)
 	router.Post("/employee", api.handlerCreateEmployee)
 	router.Get("/employee/all", api.handlerGetAllEmployee)
-	router.Put("/employee/{id}", handlerUpdateEmployee)
+	router.Put("/employee/{id}", api.handlerUpdateEmployee)
 	router.Delete("/employee/{id}", handlerDeleteEmployee)
 	router.Post("/employees/search", handlerEmployeeSearch)
 	srv := &http.Server{
@@ -101,19 +103,28 @@ func (a api) handlerGreeting(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a api) handlerGetEmployee(w http.ResponseWriter, r *http.Request) {
-	employeeId := chi.URLParamFromCtx(r.Context(), "id")
+	slog.Info("get handler is begin invocked")
+	employeeId := chi.URLParam(r, "id")
 	employee, err := a.db.GetEmployee(employeeId)
 	if err != nil {
+
+		if errors.Is(err, database.ErrEmployeeNotFound) {
+			respondWithError(w, 404, fmt.Sprintf("Employee with %s was not found", employeeId))
+			return
+		}
+		log.Print("what the fuck")
 		log.Fatal(err)
 	}
+
 	respondWithJson(w, 200, employee)
 }
 
+type CreateEmployeeBody struct {
+	Name string `json:"name"`
+	City string `json:"city"`
+}
+
 func (a api) handlerCreateEmployee(w http.ResponseWriter, r *http.Request) {
-	type CreateEmployeeBody struct {
-		Name string `json:"name"`
-		City string `json:"city"`
-	}
 	createEmployeeBody := CreateEmployeeBody{}
 
 	err := json.NewDecoder(r.Body).Decode(&createEmployeeBody)
@@ -146,7 +157,29 @@ func (a api) handlerGetAllEmployee(w http.ResponseWriter, r *http.Request) {
 	respondWithJson(w, 200, employees)
 }
 
-func handlerUpdateEmployee(w http.ResponseWriter, r *http.Request) {
+func (a api) handlerUpdateEmployee(w http.ResponseWriter, r *http.Request) {
+	employeeId := chi.URLParam(r, "id")
+	reqesutBody := CreateEmployeeBody{}
+	err := json.NewDecoder(r.Body).Decode(&reqesutBody)
+	if err != nil {
+		slog.Error("error in decoding like i thought ", err)
+	}
+	employeeNew := database.Employee{
+		EmployeeID: employeeId,
+		Name:       reqesutBody.Name,
+		City:       reqesutBody.City,
+	}
+
+	employee, err := a.db.UpdateEmployee(employeeNew, employeeId)
+	if err != nil {
+
+		if errors.Is(err, database.ErrEmployeeNotFound) {
+			respondWithError(w, 404, fmt.Sprintf("Employee with %s was not found", employeeId))
+			return
+		}
+		slog.Error("msg", err)
+	}
+	respondWithJson(w, 201, employee)
 }
 
 func handlerDeleteEmployee(w http.ResponseWriter, r *http.Request) {

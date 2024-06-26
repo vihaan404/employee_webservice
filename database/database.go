@@ -92,5 +92,61 @@ func (d Database) GetEmployee(employeeId string) (*Employee, error) {
 		}
 	}
 
-	return nil, errors.New("data not found ")
+	return nil, ErrEmployeeNotFound
+}
+
+var ErrEmployeeNotFound = errors.New("employee not found yep")
+
+func (d Database) UpdateEmployee(e Employee, employeeId string) (*Employee, error) {
+	dat, err := os.ReadFile(d.Conn.Name())
+	if err != nil {
+		return nil, err
+	}
+
+	var employees []Employee
+
+	err = json.Unmarshal(dat, &employees)
+	if err != nil {
+		return nil, err
+	}
+	found := false
+	for i := range employees {
+		if employees[i].EmployeeID == employeeId {
+			employees[i] = e
+			found = true
+
+		}
+	}
+
+	if !found {
+		return nil, ErrEmployeeNotFound
+	}
+
+	updatedData, err := json.MarshalIndent(employees, "", " ")
+	if err != nil {
+		return nil, err
+	}
+
+	os.WriteFile(d.Conn.Name(), updatedData, 0644)
+	return &e, nil
+}
+
+func (d Database) DeleteEmployee(employeeId string) (*Employee, error) {
+	dat, err := os.ReadFile(d.Conn.Name())
+	if err != nil {
+		return nil, err
+	}
+
+	var employees []Employee
+
+	err = json.Unmarshal(dat, &employees)
+	if err != nil {
+		return nil, err
+	}
+	for _, e := range employees {
+		if e.EmployeeID == employeeId {
+			return &e, nil
+		}
+	}
+	return nil, nil
 }
