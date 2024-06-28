@@ -1,4 +1,5 @@
 .env
+./employee.json
 ./out
-employee.json
-.out
+
+
