@@ -35,7 +35,7 @@ func main() {
 	router.Get("/employee/all", api.handlerGetAllEmployee)
 	router.Put("/employee/{id}", api.handlerUpdateEmployee)
 	router.Delete("/employee/{id}", api.handlerDeleteEmployee)
-	router.Post("/employees/search", handlerEmployeeSearch)
+	router.Post("/employees/search", api.handlerEmployeeSearch)
 	srv := &http.Server{
 		Addr:    ":" + port,
 		Handler: router,
@@ -196,5 +196,34 @@ func (a api) handlerDeleteEmployee(w http.ResponseWriter, r *http.Request) {
 	respondWithJson(w, 200, employee)
 }
 
-func handlerEmployeeSearch(w http.ResponseWriter, r *http.Request) {
+func (a api) handlerEmployeeSearch(w http.ResponseWriter, r *http.Request) {
+	searchParams := database.EmployeeSearch{}
+	err := json.NewDecoder(r.Body).Decode(&searchParams)
+	if err != nil {
+		slog.Error("decoding error", err)
+		return
+	}
+	res := []string{}
+	if searchParams.Fields == nil {
+		slog.Info("field not found triggered")
+		res = append(res, "At least one search criteria should be passed.")
+	}
+	for _, Field := range searchParams.Fields {
+		if Field.FieldName == "" {
+			slog.Info("fieldname not found triggered")
+			res = append(res, "fieldName must be set.")
+		}
+		if Field.Eq == "" && Field.Neq == "" {
+			slog.Info("neq and eq triggered")
+			res = append(res, fmt.Sprintf("%s: At least one of eq, neq must be set.", Field.FieldName))
+		}
+	}
+	if len(res) != 0 {
+		respondWithErrorArray(w, http.StatusBadRequest, res)
+	}
+	employees, err := a.db.SearchEmployees(searchParams)
+	if err != nil {
+		slog.Error("searchParams error :", err)
+	}
+	respondWithJson(w, 200, employees)
 }

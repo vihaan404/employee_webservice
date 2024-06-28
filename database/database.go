@@ -3,8 +3,11 @@ package database
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"os"
+	"reflect"
+	"strings"
 )
 
 type Database struct {
@@ -162,4 +165,56 @@ func (d Database) DeleteEmployee(employeeId string) (*Employee, error) {
 	os.WriteFile(d.Conn.Name(), updatedData, 0644)
 
 	return &e, nil
+}
+
+func (d Database) SearchEmployees(searchParams EmployeeSearch) ([]Employee, error) {
+	dat, err := os.ReadFile(d.Conn.Name())
+	if err != nil {
+		return nil, err
+	}
+
+	var employees []Employee
+
+	err = json.Unmarshal(dat, &employees)
+	if err != nil {
+		return nil, err
+	}
+	searchResult := []Employee{}
+
+	for _, field := range searchParams.Fields {
+		fieldName := field.FieldName
+
+		ans := []Employee{}
+		for _, e := range employees {
+			v := reflect.ValueOf(e)
+
+			fields := v.FieldByName(strings.Title(fieldName))
+			if !fields.IsValid() {
+				return nil, fmt.Errorf("no such field: %s in employee", fieldName)
+			}
+			if field.Eq != "" {
+				if fields.String() == field.Eq {
+					ans = append(ans, e)
+				}
+			}
+			if field.Neq != "" {
+				if fields.String() != field.Neq {
+					ans = append(ans, e)
+				}
+			}
+
+		}
+
+		if searchParams.Condition == "OR" {
+			searchResult = append(searchResult, ans...)
+		}
+		if searchParams.Condition == "AND" {
+			searchResult = ans
+			employees = searchResult
+
+		}
+
+	}
+
+	return searchResult, nil
 }
