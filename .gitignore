@@ -1,5 +1,6 @@
 .env
 ./out
 ./employee_webservice
+./employee.json
 
 
